@@ -40,13 +40,10 @@ public:
         }
 
         int index = hashFunc(value, table.size());
-        while (!table[index].empty()) {
-            index = (index + 1) % table.size();
-        }
-
         table[index].push_back(value);
         ++currentSize;
     }
+
 
     bool containsItem(double value) {
         int index = hashFunc(value, table.size());
@@ -58,13 +55,14 @@ public:
         return false;
     }
 
+
     void printTable() {
         for (int i = 0; i < table.size(); i++) {
             cout << "Hash Index " << i << ": ";
             for (const double& value : table[i]) {
-                cout << value << " ";
+                cout << value << " -> ";
             }
-            cout << "\n";
+            cout << "NULL\n";
         }
     }
 };
