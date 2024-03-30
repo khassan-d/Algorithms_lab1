@@ -1,168 +1,110 @@
-﻿#include<iostream>
-#include<list>
-#include<Windows.h>
+#include <iostream>
+#include <vector>
+#include <list>
+#include <cmath>
 using namespace std;
 
 class HashTable {
 private:
-	static const int hashGroups = 11;//Кількість двозвьязних списків які ми будемо використовувати.
-	//
-	list<pair<int, double>> table[hashGroups]; // list 1 , index 0 , list 2 index 1...
-	//цей запис утворюе масив Table розмірністю hashGroups , який будет мати у собі списки які у свою чергу матимуть у собі два значення (int, string)
+    vector<list<double>> table;
+    int currentSize;
+
+    void resizeTable() {
+        int oldSize = table.size();
+        int newSize = max(2 * oldSize, 10);
+        vector<list<double>> newTable(newSize);
+
+        for (int i = 0; i < oldSize; ++i) {
+            for (double value : table[i]) {
+                int newIndex = hashFunc(value, newSize);
+                newTable[newIndex].push_back(value);
+            }
+        }
+
+        table = move(newTable);
+    }
 
 public:
-	bool isEmpty() const;//перевіряє наявність елементів у хеш-таблиці
-	int hashFunc(int key);//хеш-функція
-	void insertItem(int key, double value);//вставка елементів у хеш-таблицю
-	void removeItem(int key);//видалення елементів
-	double searchTable(int key);//пошук елементу у таблиці
-	void printTable();//виведення усієї таблиці
-}; 
+    HashTable() : currentSize(0) {
+        table.resize(10);
+    }
 
-bool HashTable::isEmpty() const {
-	int sum{};// фігурні дужки автоматично присвоють змінній sum нульове значення
-	for (int i{}; i < hashGroups; i++) {
-		sum += table[i].size();//table[i].size() повертае розмір контейнеру з індексом і (кількість данних у ньому)
-	}
+    int hashFunc(double value, int mod) const {
+        double temp = value * 5.5;
+        return static_cast<int>(mod * (temp - floor(temp)));
+    }
 
-	return !sum;
-}
+    void insertItem(double value) {
+        if (currentSize == table.size() - 1) {
+            resizeTable();
+        }
 
-int HashTable::hashFunc(int key) {
-	return key % hashGroups; //key: 905, in return , this function will spit out 5.
-}
+        int index = hashFunc(value, table.size());
+        while (!table[index].empty()) {
+            index = (index + 1) % table.size();
+        }
 
-void HashTable::insertItem(int key, double value) {
-	int hashValue = hashFunc(key);//присвоемо змінній hashValue значення ключа який пройшов через нашу хеш функцію
-	auto& cell = table[hashValue];//оператор auto& визначае тип змінної cell , як ПОСИЛАННЯ на об'єкт що зберігвється у ячейці table[hashValue]
-	auto bItr = begin(cell);// Утворює ітератор , який ми перекидаемо на початок списку , котрий лежить у контейнеру масива , функцією begin(cell)
-	bool keyExists = false;
-	for (; bItr != end(cell); bItr++) {//циклом пробігаємо по списку
-		if (bItr->first == key) {//якщо перший елемент списку дорівнює ключу який ми додаємо 
-			keyExists = true;
-			cell.push_back(make_pair(key, value));//присвоюємо нашему другому елементу списку нове значення value
-			cout << "[WARNING] Key exists. Value replaced." << endl;
-			break;
-		}
-		if (!keyExists) {
-			//створюємо нову пару ключ-значення та додайте її до списку
-			cell.push_back(make_pair(key, value));
-		}
-	}
+        table[index].push_back(value);
+        ++currentSize;
+    }
 
-	if (!keyExists) {
-		cell.emplace_back(key, value);//доде нове значення до контейнера 
-	}
-	return;
-} 
+    bool containsItem(double value) {
+        int index = hashFunc(value, table.size());
+        for (const double& val : table[index]) {
+            if (val == value) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-void HashTable::removeItem(int key) {
-	int hashValue = hashFunc(key);
-	auto& cell = table[hashValue];
-	auto bItr = begin(cell);
-	bool keyExists = false;
-	for (; bItr != end(cell); bItr++) {
-		if (bItr->first == key) {
-			keyExists = true;
-			bItr = cell.erase(bItr);
-			cout << "[INFO] Item removed." << endl;
-			break;
-		}
-	}
-
-	if (!keyExists) {
-		cout << "[WARNING] KEy not found.Pair not remove." << endl;
-	}
-	return;
-
-}
-
-void HashTable::printTable() {
-	for (int i = 0; i < hashGroups; i++) {
-		if (table[i].size() == 0) continue;
-
-		cout << "Hash Group " << i << ":" << endl;
-
-		for (const auto& pair : table[i]) {
-			cout << "Key: " << pair.first << ", Value: " << pair.second << endl;
-		}
-	}
-}
-
-double HashTable::searchTable(int key) {
-	for (int i{}; i < hashGroups; i++) {
-		auto bItr = table[i].begin();
-		for (; bItr != table[i].end(); bItr++) {
-			if (bItr->first == key)
-				return bItr->second;
-		}
-	}
-	return -1;
-}
+    void printTable() {
+        for (int i = 0; i < table.size(); i++) {
+            cout << "Hash Index " << i << ": ";
+            for (const double& value : table[i]) {
+                cout << value << " ";
+            }
+            cout << "\n";
+        }
+    }
+};
 
 int main() {
-	HashTable ht;
+    HashTable ht;
+    int choice;
+    double value;
 
-	int choice, key;
-	double value;
+    while (true) {
+        cout << "1. Insert a value into the hash table." << endl;
+        cout << "2. Print the hash table." << endl;
+        cout << "3. Check if a value exists in the hash table." << endl;
+        cout << "0. Exit." << endl;
+        cout << "Enter your choice: ";
+        cin >> choice;
 
-	while (true) {
-		cout << "Enter your choice: " << endl;
-		cout << "1. Check if Hash-table is empty." << endl;
-		cout << "2. Insert item in hash table." << endl;
-		cout << "3. Remove item from hash-table." << endl;
-		cout << "4. Print all hash-table." << endl;
-		cout << "5. Serch-table." << endl;
-		cout << "0. Exit." << endl;
-		cin >> choice;
-
-		switch (choice) {
-		case 0:
-			return 0;
-		case 1:
-			system("cls");
-			if (ht.isEmpty()) {
-				cout << "Hash-table is empty." << endl;
-			}
-			else {
-				cout << "Hash-table is not empty." << endl;
-			}
-			system("pause");
-			system("cls");
-			break;
-		case 2:
-			system("cls");
-			cout << "Enter key and value to insert: " << endl;
-			cin >> key >> value;
-			ht.insertItem(key, value);
-			system("pause");
-			system("cls");
-			break;
-		case 3:
-			system("cls");
-			cout << "Enter key to remove: " << endl;
-			cin >> key;
-			ht.removeItem(key);
-			system("pause");
-			system("cls");
-			break;
-		case 4:
-			system("cls");
-			ht.printTable();
-			system("pause");
-			system("cls");
-			break;
-		case 5:
-			system("cls");
-			cout << "Enter the key that you want to find: " << endl;
-			cin >> key;
-			cout << ht.searchTable(key) << endl;
-			system("pause");
-			system("cls");
-			break;
-		default:
-			cout << "Invalid choice. Try again." << endl;
-			break;
-		}
-	}
+        switch (choice) {
+        case 1:
+            cout << "Enter a real number: ";
+            cin >> value;
+            ht.insertItem(value);
+            break;
+        case 2:
+            ht.printTable();
+            break;
+        case 3:
+            cout << "Enter a value to check: ";
+            cin >> value;
+            if (ht.containsItem(value)) {
+                cout << "Value found in the hash table." << endl;
+            }
+            else {
+                cout << "Value not found in the hash table." << endl;
+            }
+            break;
+        case 0:
+            return 0;
+        default:
+            cout << "Invalid choice. Please try again." << endl;
+        }
+    }
 }
